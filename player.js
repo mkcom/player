@@ -39,8 +39,7 @@ Player.prototype.pause = function () {
 }
 
 Player.prototype.stop = function () {
-    this.audio.stop();
-    this.isPlaying = false;
+    this.pause();
     this.setPostion(0);
 }
 
