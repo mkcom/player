@@ -1,4 +1,6 @@
 function Player() {
+    this.id = Math.round(Math.random() * 1000);
+
     // audio player
     this.audio = new Audio();
 
@@ -6,18 +8,30 @@ function Player() {
     this.track = null;
     this.position = 0;
     this.isPlaying = false;
+
+    this.log = function (message) {
+        console.log(`Player #${this.id}: `, message);
+    }
+
+    this.log('initialized');
 }
 
-Player.setTrack = function (track) {
+Player.prototype.setTrack = function (track) {
     this.track = track;
+    this.log(`-> track "${track.title}" set`);
+
     this.audio.src = `${this.track.stream_url}?consumer_key=${document.apiKey}`;
+    this.log(`-> audio source set to "${this.track.stream_url}"`);
 }
 
-Player.setPostion = function (pos) {
+Player.prototype.setPostion = function (pos) {
+    this.audio.currentTime = pos;
     this.position = pos;
+    this.log(`-> position set to ${pos}`);
 }
 
 Player.prototype.load = function (track) {
+    this.log('load');
     const wasPlaying = this.isPlaying;
 
     this.stop();
@@ -29,26 +43,31 @@ Player.prototype.load = function (track) {
 }
 
 Player.prototype.play = function () {
+    this.log('play');
     this.audio.play();
     this.isPlaying = true;
 }
 
 Player.prototype.pause = function () {
+    this.log('pause');
     this.audio.pause();
     this.isPlaying = false;
 }
 
 Player.prototype.stop = function () {
+    this.log('stop');
     this.pause();
     this.setPostion(0);
 }
 
 Player.prototype.next = function () {
+    this.log('next');
     const wasPlaying = this.isPlaying;
     
 }
 
 Player.prototype.prev = function () {
+    this.log('prev');
     const wasPlaying = this.isPlaying;
     
 }
@@ -119,3 +138,5 @@ const track = {
     "downloadable": false,
     "downloads_remaining": null
 };
+
+player.load(track);
