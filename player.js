@@ -1,41 +1,73 @@
-function Player() {
+function Player(trackList) {
     this.id = Math.round(Math.random() * 1000);
 
     // audio player
     this.audio = new Audio();
 
     // initialize defaults
-    this.track = null;
-    this.position = 0;
+    this.setTrackList(trackList);
+    this.currentIndex = -1;
+    this.currentTrack = null;
     this.isPlaying = false;
 
-    this.log = function (message) {
-        console.log(`Player #${this.id}: `, message);
-    }
+    this.log('init');
 
-    this.log('initialized');
+    this.audio.addEventListener('timeupdate', ({ target }) => {
+        const position = target.currentTime;
+        this.log(`time: ${position} sec`);
+    }, false);
+
+    this.audio.addEventListener('progress', ({ target }) => {
+        const buffer = ((target.buffered.length && target.buffered.end(0)) / target.duration) * 100;
+        this.log(`buffered: ${buffer}%`);
+    }, false);
 }
 
-Player.prototype.setTrack = function (track) {
-    this.track = track;
-    this.log(`-> track "${track.title}" set`);
+Player.prototype.log = function () {
+    window.console.log.apply(window.console, [`Player #${this.id}: `, ...arguments]);
+}
 
-    this.audio.src = `${this.track.stream_url}?consumer_key=${document.apiKey}`;
-    this.log(`-> audio source set to "${this.track.stream_url}"`);
+Player.prototype.setTrackList = function (trackList) {
+    this.trackList = trackList;
+    this.playOrder = trackList.map((_, index) => index);
 }
 
 Player.prototype.setPostion = function (pos) {
     this.audio.currentTime = pos;
-    this.position = pos;
-    this.log(`-> position set to ${pos}`);
 }
 
-Player.prototype.load = function (track) {
-    this.log('load');
+Player.prototype.loadTrack = function (orderIndex) {
+    const trackIndex = this.playOrder[orderIndex];
+    if (trackIndex === undefined) {
+        return;
+    }
+    this.currentIndex = orderIndex;
+    this.currentTrack = this.trackList[trackIndex];
+    this.audio.src = `${this.currentTrack.stream_url}?consumer_key=${document.apiKey}`;
+    this.audio.load();
+}
+
+Player.prototype.shuffle = function () {
+    const playOrder = [...this.playOrder];
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    shuffleArray(playOrder);
+    this.playOrder = playOrder;
+}
+
+Player.prototype.load = function (orderIndex) {
     const wasPlaying = this.isPlaying;
 
     this.stop();
-    this.setTrack(track);
+    if (this.currentIndex !== orderIndex) {
+        this.loadTrack(orderIndex);
+    }
 
     if (wasPlaying) {
         this.play();
@@ -43,19 +75,26 @@ Player.prototype.load = function (track) {
 }
 
 Player.prototype.play = function () {
-    this.log('play');
     this.audio.play();
     this.isPlaying = true;
 }
 
 Player.prototype.pause = function () {
-    this.log('pause');
     this.audio.pause();
     this.isPlaying = false;
 }
 
 Player.prototype.stop = function () {
-    this.log('stop');
     this.pause();
     this.setPostion(0);
+}
+
+Player.prototype.next = function () {
+    const nextIndex = this.currentIndex + 1;
+    this.load(nextIndex);
+}
+
+Player.prototype.prev = function () {
+    const prevIndex = (this.audio.currentTime > 3) ? this.currentIndex : this.currentIndex - 1;
+    this.load(prevIndex);
 }
